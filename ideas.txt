@@ -1,0 +1,9 @@
+Intensity sliders vmin/vmax
+Drag and drop windows of integration rather than single pixel (chceckbox option?)
+Might be hard for programme to know whether max on min bound being selected...
+Also show label for number of energy bins 
+File explorer to load File
+Options to plot with calib or not
+Currently if you go out of range with arrow key it closes the window (fix)
+Add background subtract check box. 
+Add zoom functionality / changing axes
