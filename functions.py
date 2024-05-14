@@ -2,7 +2,7 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout,QSlider, QWidget, QGridLayout,QSizePolicy, QCheckBox
+from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout,QSlider, QWidget, QGridLayout,QSizePolicy, QCheckBox, QLineEdit, QPushButton
 from PyQt5.QtCore import Qt
 
 
@@ -16,22 +16,36 @@ class MainWindow(QMainWindow):
         self.y = y
         self.matrix = matrix
 
+
+
+
         self.setWindowTitle("2D Array Plotter")
-        self.setGeometry(200, 200, 500, 1500)
+        self.setGeometry(200, 200, 800, 1500)
 
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
         layout = QGridLayout(self.central_widget)
 
+        self.xlims = [3500,4000]
+        self.xmin_lineedit = QLineEdit()
+        self.xmax_lineedit = QLineEdit()
+        self.apply_button = QPushButton("Apply x limits")
+        self.apply_button.clicked.connect(self.apply_x_limits)
+        layout.addWidget(self.xmin_lineedit,0,1)
+        layout.addWidget(self.xmax_lineedit,0,2)
+        layout.addWidget(self.apply_button,0,3)
+
         # Create Matplotlib figure for the original matrix
+
         self.fig_original, self.ax_original = plt.subplots(figsize = (6,6))
+        self.ax_original.set_xlim(self.xlims)
         self.canvas_original = FigureCanvas(self.fig_original)
         layout.addWidget(self.canvas_original,0,0)
         self.canvas_original.mpl_connect('button_press_event', self.on_mouse_press)
 
         #add checkbox for background subtraction
-        self.bkg = QCheckBox()
-        layout.addWidget(self.bkg,0,1)
+        # self.bkg = QCheckBox()
+        # layout.addWidget(self.bkg,0,1)
 
         # Add slider for selecting X value
         
@@ -117,6 +131,8 @@ class MainWindow(QMainWindow):
         self.ax_original.clear()
         self.ax_original.pcolormesh(self.x,self.y,self.matrix, cmap='viridis')
         self.ax_original.set_yscale('symlog',linthresh = 1000)
+        self.ax_original.set_xlim(self.xlims)
+
         self.ax_original.set_title("Original Matrix")
         
         # Update selected Y values plot
@@ -142,6 +158,8 @@ class MainWindow(QMainWindow):
         self.ax_original.clear()
         self.ax_original.pcolormesh(self.x,self.y,self.matrix, cmap='viridis')
         self.ax_original.set_yscale('symlog',linthresh = 1000)
+        self.ax_original.set_xlim(self.xlims)
+
 
         self.ax_original.set_title("Original Matrix")
         
@@ -151,6 +169,7 @@ class MainWindow(QMainWindow):
         self.ax_y_selected.set_title(f"Selected Y values for X={self.y[y_index]}")
         self.ax_y_selected.set_xlabel("X index")
         self.ax_y_selected.set_ylabel("Value")
+        self.ax_y_selected.set_xlim(self.xlims)
         self.ax_original.axhline(self.y[y_index], color='red')
         
         self.fig_original.canvas.draw()
@@ -159,4 +178,10 @@ class MainWindow(QMainWindow):
     def bkg_sub(self):
         bkg = np.mean(self.matrix[0:3,:],axis=0)
         self.matrix = self.matrix - bkg
+
+    def apply_x_limits(self):
+        self.xlims = [float(self.xmin_lineedit.text()),float(self.xmax_lineedit.text())]
+        self.update_xplot()
+        self.update_yplot()
+
 
