@@ -12,7 +12,7 @@ if __name__ == '__main__':
     app = QApplication([])  
     #eventually add load function like for fitting
     #add flip axis
-    file = np.genfromtxt('test_data/300.txt')
+    file = np.genfromtxt('test_data/275.txt')
     x = file[0,1:]
     y = file[1:,0]
     matrix = file[1:,1:]

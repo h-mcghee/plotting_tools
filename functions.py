@@ -9,24 +9,44 @@ from PyQt5.QtCore import Qt
 def idx(x, value):
     return np.argmin(np.abs(x - value))
 
+def tof2energy(x, hv, s, t0, E0):
+    """
+    function for converting from TOF to energy
+    requires:
+    t the time of flight
+    parameters:
+        hv - photon energy
+        s - source to detector distance
+        t0 - start time
+        E0 - potential offset in source
+    """
+    Me = 9.1093897e-31  # mass electron in kg
+    ES = 6.242e18  # electrons per s
+
+    eKE = (ES * 0.5 * Me) * ((1e9 * s / (x - t0))**2)  - E0
+
+    BE = hv - eKE
+    return BE
+
 class MainWindow(QMainWindow):
     def __init__(self,x,y,matrix,parent = None):
         super(MainWindow,self).__init__(parent)
-        self.x = x
-        self.y = y
-        self.matrix = matrix
+        self.og_x = self.x = x
+        self.og_y = self.y = y
+        self.og_matrix = self.matrix = matrix
 
+        self.scale = 'linear'
 
 
 
         self.setWindowTitle("2D Array Plotter")
-        self.setGeometry(200, 200, 800, 1500)
+        self.setGeometry(200, 200, 1000, 1500)
 
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
         layout = QGridLayout(self.central_widget)
 
-        self.xlims = [3500,4000]
+        self.xlims = [min(x),max(x)]
         self.xmin_lineedit = QLineEdit()
         self.xmax_lineedit = QLineEdit()
         self.apply_button = QPushButton("Apply x limits")
@@ -34,6 +54,19 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.xmin_lineedit,0,1)
         layout.addWidget(self.xmax_lineedit,0,2)
         layout.addWidget(self.apply_button,0,3)
+
+        self.calib_checkbox = QCheckBox("TOF calibration")
+        self.calib_checkbox.stateChanged.connect(self.tof_calib)
+        layout.addWidget(self.calib_checkbox,0,4)
+
+        self.bkg_sub_checkbox = QCheckBox("Bkg sub")
+        self.bkg_sub_checkbox.stateChanged.connect(self.bkg_sub)
+        layout.addWidget(self.bkg_sub_checkbox,1,3)
+
+        # self.log_checkbox = QCheckBox("Log scale")
+        # self.log_checkbox.stateChanged.connect(self.log_scale)
+        # layout.addWidget(self.log_checkbox,1,4)
+
 
         # Create Matplotlib figure for the original matrix
 
@@ -130,7 +163,7 @@ class MainWindow(QMainWindow):
         # Update original matrix plot
         self.ax_original.clear()
         self.ax_original.pcolormesh(self.x,self.y,self.matrix, cmap='viridis')
-        self.ax_original.set_yscale('symlog',linthresh = 1000)
+        # self.ax_original.set_yscale(self.scale)
         self.ax_original.set_xlim(self.xlims)
 
         self.ax_original.set_title("Original Matrix")
@@ -141,7 +174,9 @@ class MainWindow(QMainWindow):
         self.ax_selected.set_title(f"Selected Y values for X={self.x[x_index]}")
         self.ax_selected.set_xlabel("Y index")
         self.ax_selected.set_ylabel("Value")
+        # self.ax_selected.set_xscale(self.scale)
         self.ax_original.axvline(self.x[x_index], color='red')
+        
         
         self.fig_original.canvas.draw()
         self.fig_selected.canvas.draw()
@@ -157,7 +192,7 @@ class MainWindow(QMainWindow):
         # Update original matrix plot
         self.ax_original.clear()
         self.ax_original.pcolormesh(self.x,self.y,self.matrix, cmap='viridis')
-        self.ax_original.set_yscale('symlog',linthresh = 1000)
+        # self.ax_original.set_yscale(self.scale)
         self.ax_original.set_xlim(self.xlims)
 
 
@@ -175,13 +210,49 @@ class MainWindow(QMainWindow):
         self.fig_original.canvas.draw()
         self.fig_y_selected.canvas.draw()
 
-    def bkg_sub(self):
+    def bkg_sub(self,state):
         bkg = np.mean(self.matrix[0:3,:],axis=0)
-        self.matrix = self.matrix - bkg
+        if state == Qt.Checked:
+            self.matrix = self.matrix - bkg
+            self.update_xplot()
+            self.update_yplot()
+        else:
+            self.matrix = self.og_matrix
+            self.update_xplot()
+            self.update_yplot()
 
     def apply_x_limits(self):
         self.xlims = [float(self.xmin_lineedit.text()),float(self.xmax_lineedit.text())]
         self.update_xplot()
         self.update_yplot()
+        
+
+    def tof_calib(self,state):
+        if state == Qt.Checked:
+            self.x = tof2energy(self.x,2.164476933102369571e+01,3.278435274171569436e-01,3.444852703175022270e+03,0.000000000000000000e+00)
+            mask = self.x > 0 
+            self.x = self.x[mask]
+            self.matrix = self.matrix[:,mask]
+            self.xlims = [min(self.x),max(self.x)]
+            self.update_xplot()
+            self.update_yplot()
+        else:
+            self.x = self.og_x
+            self.xlims = [min(self.x),max(self.x)]
+            self.update_xplot()
+            self.update_yplot()
+
+    # def log_scale(self,state):
+    #     if state == Qt.Checked:
+    #         self.scale = ['symlog']
+    #         self.update_xplot()
+    #         self.update_yplot()
+    #     else:
+    #         self.scale = 'linear'
+    #         self.update_xplot()
+    #         self.update_yplot()
+
+    
+
 
 

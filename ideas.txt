@@ -7,3 +7,7 @@ Options to plot with calib or not
 Currently if you go out of range with arrow key it closes the window (fix)
 Add background subtract check box. 
 Add zoom functionality / changing axes
+load calibration constants / file 
+
+TO DO:
+Need to sort out tof calib / bkg ordering and unchecking. 
