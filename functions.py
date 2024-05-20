@@ -2,7 +2,7 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout,QSlider, QWidget, QGridLayout,QSizePolicy, QCheckBox, QLineEdit, QPushButton
+from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout,QSlider, QWidget, QGridLayout,QSizePolicy, QCheckBox, QLineEdit, QPushButton, QSpinBox,QFileDialog
 from PyQt5.QtCore import Qt
 
 
@@ -37,7 +37,7 @@ class MainWindow(QMainWindow):
 
         self.scale = 'linear'
 
-
+        self.is_checked = False
 
         self.setWindowTitle("2D Array Plotter")
         self.setGeometry(200, 200, 1000, 1500)
@@ -62,6 +62,22 @@ class MainWindow(QMainWindow):
         self.bkg_sub_checkbox = QCheckBox("Bkg sub")
         self.bkg_sub_checkbox.stateChanged.connect(self.bkg_sub)
         layout.addWidget(self.bkg_sub_checkbox,1,3)
+
+        self.average_checkbox = QCheckBox("Average")
+        self.average_checkbox.stateChanged.connect(self.set_state)
+        layout.addWidget(self.average_checkbox,1,4)
+
+        self.spin_box = QSpinBox()
+        self.spin_box.setMinimum(1)
+        self.spin_box.setMaximum(20)
+        self.spin_box.valueChanged.connect(self.update_xplot)
+        layout.addWidget(self.spin_box,1,5)
+
+        self.save_button = QPushButton("Save")
+        self.save_button.clicked.connect(self.save)
+        layout.addWidget(self.save_button,2,1)
+
+        self.selected_values = None
 
         # self.log_checkbox = QCheckBox("Log scale")
         # self.log_checkbox.stateChanged.connect(self.log_scale)
@@ -158,10 +174,21 @@ class MainWindow(QMainWindow):
 
     def update_xplot(self):
         x_index = self.x_slider.value()
-        selected_values = self.matrix[:, x_index]
+        self.ax_original.clear()
+        if self.is_checked == True:
+            self.selected_values = np.sum(self.matrix[:, x_index:x_index+self.spin_box.value()],axis=1)
+            self.ax_original.axvline(self.x[x_index], color='red')
+            self.ax_original.axvline(self.x[x_index+self.spin_box.value()-1], color='red')
+
+        else:
+            self.selected_values = self.matrix[:, x_index]
+            self.ax_original.axvline(self.x[x_index], color='red')
+
+
+
         
         # Update original matrix plot
-        self.ax_original.clear()
+        
         self.ax_original.pcolormesh(self.x,self.y,self.matrix, cmap='viridis')
         # self.ax_original.set_yscale(self.scale)
         self.ax_original.set_xlim(self.xlims)
@@ -170,16 +197,21 @@ class MainWindow(QMainWindow):
         
         # Update selected Y values plot
         self.ax_selected.clear()
-        self.ax_selected.plot(self.y,selected_values)
-        self.ax_selected.set_title(f"Selected Y values for X={self.x[x_index]}")
+        self.ax_selected.plot(self.y,self.selected_values)
+        self.ax_selected.fill_between(self.y,self.selected_values - np.sqrt(self.selected_values),self.selected_values + np.sqrt(self.selected_values),alpha=0.5)
+        if self.is_checked == True:
+            self.ax_selected.set_title(f"Sum of Y values for X={self.x[x_index]} to {self.x[x_index+self.spin_box.value()-1]}")
+        else:
+            self.ax_selected.set_title(f"Selected Y values for X={self.x[x_index]}")
         self.ax_selected.set_xlabel("Y index")
         self.ax_selected.set_ylabel("Value")
-        # self.ax_selected.set_xscale(self.scale)
-        self.ax_original.axvline(self.x[x_index], color='red')
+        self.ax_selected.set_xscale('symlog',linthresh = 1000)
+        
         
         
         self.fig_original.canvas.draw()
         self.fig_selected.canvas.draw()
+        self.setFocus()
 
         
 
@@ -241,6 +273,24 @@ class MainWindow(QMainWindow):
             self.xlims = [min(self.x),max(self.x)]
             self.update_xplot()
             self.update_yplot()
+
+    def set_state(self,state):
+        if state == Qt.Checked:
+            self.is_checked = True
+        else:
+            self.is_checked = False
+        self.update_xplot()
+
+    def save(self):
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        file_name, _ = QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()", "","All Files (*);;Text Files (*.txt)", options=options)
+        if file_name:
+            with open(file_name, 'w') as f:
+                for x, y in zip(self.y, self.selected_values):
+                    f.write(f"{x}\t{y}\n")
+
+
 
     # def log_scale(self,state):
     #     if state == Qt.Checked:
