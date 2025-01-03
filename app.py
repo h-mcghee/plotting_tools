@@ -1,25 +1,37 @@
 import sys
+import argparse
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from PyQt5.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout,QSlider, QWidget, QGridLayout,QSizePolicy, QSpinBox, QPushButton, QCheckBox
-from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QApplication
+from plotter import MainWindow
 
-from functions import MainWindow,idx
+def main():
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description="2D Array Plotter")
+    parser.add_argument(
+        "filename",
+        type=str,
+        nargs="?",
+        default="test_data/zmatrix.txt",
+        help="Path to the input file containing the 2D matrix data (default: test_data/zmatrix.txt)."
+    )
+    args = parser.parse_args()
 
-if __name__ == '__main__':
+    # Load the data file
+    try:
+        file = np.genfromtxt(args.filename)
+        x = file[0, 1:]
+        y = file[1:, 0]
+        matrix = file[1:, 1:]
+    except Exception as e:
+        print(f"Error loading file '{args.filename}': {e}")
+        sys.exit(1)
 
+    # Launch the PyQt5 application
     app = QApplication([])  
-    #eventually add load function like for fitting
-    #add flip axis
-    file = np.genfromtxt('test_data/275.txt')
-    x = file[0,1:]
-    y = file[1:,0]
-    matrix = file[1:,1:]
-
-
-    window = MainWindow(x,y,matrix)
+    window = MainWindow(x, y, matrix)
     window.show()
     window.setFocus()
-
     sys.exit(app.exec_())
+
+if __name__ == '__main__':
+    main()

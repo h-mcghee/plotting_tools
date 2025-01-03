@@ -1,5 +1,11 @@
-*.pyc
 venv/
 .DS_store
 
-*.txt
+
+#pyc files
+__pycache__/
+*.pyc
+
+test_data/*
+!test_data/zmatrix.txt
+
